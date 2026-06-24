@@ -6409,6 +6409,16 @@ function openWhatsAppSupport(offerName, userNum, txnId) {
     });
   }
 </script>
-
+<script>
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // একটি সুন্দর ইনস্টল বাটন স্ক্রিনে দেখানোর জন্য (যদি আপনার কোনো বাটন থাকে)
+    // অথবা সরাসরি ব্রাউজারের নিজস্ব ইনস্টল পপআপ দেখাবে
+    deferredPrompt.prompt();
+  });
+</script>
+    
 </body>
 </html>

@@ -991,7 +991,66 @@ if(videoUrl.includes("v=")) {
   if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
   }
-  
+  // ========================================================
+// 🛡️ সুরক্ষিত নোটিফিকেশন ইঞ্জিন (try...catch সেফটি বক্স)
+// ========================================================
+try {
+  // ব্রাউজার নোটিফিকেশন সাপোর্ট করে কিনা তা চেক করা হচ্ছে
+  if (firebase.messaging.isSupported()) {
+    
+    const messaging = firebase.messaging();
+
+    // ১. সার্ভিস ওয়ার্কার রেজিস্টার করা (সামনের '/' বাদ দেওয়া হয়েছে সেফটির জন্য)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log('সার্ভিস ওয়ার্কার সফলভাবে চালু হয়েছে:', registration.scope);
+          requestNotificationPermission(messaging); 
+        }).catch((err) => {
+          console.error('সার্ভিস ওয়ার্কার চালু করতে ব্যর্থ:', err);
+        });
+    }
+
+    // ২. ইউজারের কাছ থেকে পারমিশন নেওয়া এবং টোকেন ডাটাবেজে পাঠানো
+    function requestNotificationPermission(messagingInstance) {
+      messagingInstance.getToken({ vapidKey: 'BBJ6ito6d3tn_mjt0PlSwWBbdINQbbe2aAMP3f03gpe6WXGYmwAfrRVLQt-AnnWDl_O-f9W1IW8rP4q3gmbH6j' }) 
+        .then((currentToken) => {
+          if (currentToken) {
+            console.log('ইউজারের ইউনিক টোকেন:', currentToken);
+            
+            const safeTokenKey = currentToken.replace(/[.#$\[\]]/g, '_');
+            
+            firebase.database().ref('fcm_tokens/' + safeTokenKey).set({
+              token: currentToken,
+              deviceType: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
+              lastUpdated: Date.now()
+            });
+          } else {
+            console.log('কোনো টোকেন পাওয়া যায়নি!');
+          }
+        }).catch((err) => {
+          console.log('টোকেন সংগ্রহ করার সময় এরর এসেছে: ', err);
+        });
+    }
+
+    // ৩. ফোরগ্রウンド নোটিফিকেশন হ্যান্ডলার (যখন ইউজার অ্যাপের ভেতরে থাকবে)
+    messaging.onMessage((payload) => {
+      console.log('অ্যাপে নোটিফিকেশন এসেছে: ', payload);
+      new Notification(payload.notification.title, {
+        body: payload.notification.body,
+        icon: payload.notification.icon
+      });
+    });
+
+  } else {
+    console.log('এই ব্রাউজার বা ডিভাইসে ফায়ারবেস নোটিফিকেশন সাপোর্ট করে না।');
+  }
+} catch (error) {
+  // নোটিফিকেশনে কোনো ভুল বা এরর হলেও এই ক্যাচ ব্লকটি তা আটকে দেবে, আপনার মেইন অ্যাপ ক্রাশ করবে না
+  console.error('নোটিফিকেশন সেটআপে সমস্যা হয়েছে, কিন্তু অ্যাপ সচল থাকবে:', error);
+}
+// ========================================================
+
   // গ্লোবাল ডাটাবেজ ভ্যারিয়েন্ট তৈরি
   const database = firebase.database();
 

@@ -6478,6 +6478,25 @@ function openWhatsAppSupport(offerName, userNum, txnId) {
     deferredPrompt.prompt();
   });
 </script>
-    
+    // ১. মেসেজিং শুরু করা
+const messaging = firebase.messaging();
+
+// ২. নোটিফিকেশন পারমিশন চাওয়া ও টোকেন নেওয়া
+messaging.requestPermission()
+  .then(() => {
+    return messaging.getToken({vapidKey: 'YOUR_PUBLIC_VAPID_KEY_IF_NEEDED'}); 
+  })
+  .then((token) => {
+    console.log('টোকেন পাওয়া গেছে:', token);
+    // ৩. টোকেনটি ডাটাবেজে সেভ করা (সবচেয়ে গুরুত্বপূর্ণ!)
+    firebase.database().ref('fcm_tokens').push({
+      token: token
+    });
+    alert("আপনার ফোনটি নোটিফিকেশনের জন্য সফলভাবে যুক্ত হয়েছে!");
+  })
+  .catch((err) => {
+    console.log('টোকেন পেতে সমস্যা হয়েছে: ', err);
+  });
+
 </body>
 </html>
